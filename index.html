@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D3.js Network Graph</title>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; }
@@ -9,27 +12,29 @@
   </style>
 </head>
 <body>
+
   <svg width="600" height="400"></svg>
+
   <script>
     const width = 600, height = 400;
-    
-    const nodes = [
+
+    let nodes = [
       { id: "Person A" },
       { id: "Person B" },
       { id: "Person C" },
       { id: "Person D" }
     ];
-    
-    const links = [
+
+    let links = [
       { source: "Person A", target: "Person B" },
       { source: "Person A", target: "Person C" },
       { source: "Person B", target: "Person D" }
     ];
-    
+
     const svg = d3.select("svg")
       .attr("width", width)
       .attr("height", height);
-    
+
     const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(d => d.id).distance(100))
       .force("charge", d3.forceManyBody().strength(-300))
@@ -76,6 +81,71 @@
         .attr("cx", d => d.x)
         .attr("cy", d => d.y);
     });
+
+    // ==============================
+    //  MESSAGE LISTENER FOR RETOOL
+    // ==============================
+    window.addEventListener("message", (event) => {
+      // Ensure the message comes from Retool
+      if (event.origin !== "https://your-retool-app-url.retool.com") return;
+
+      const nationalID = event.data.nationalID;
+      if (nationalID) {
+        updateGraph(nationalID);
+      }
+    });
+
+    // ==============================
+    //  FUNCTION TO UPDATE GRAPH
+    // ==============================
+    function updateGraph(nationalID) {
+      // Simulated query response based on National ID
+      nodes = [
+        { id: nationalID },
+        { id: "Person B" },
+        { id: "Person C" }
+      ];
+
+      links = [
+        { source: nationalID, target: "Person B" },
+        { source: nationalID, target: "Person C" }
+      ];
+
+      // Clear previous visualization
+      d3.selectAll(".node, .link").remove();
+
+      // Restart simulation with new data
+      simulation.nodes(nodes);
+      simulation.force("link").links(links);
+      simulation.alpha(1).restart();
+
+      // Re-draw the graph with new data
+      const newLink = svg.selectAll(".link")
+        .data(links)
+        .enter().append("line")
+        .attr("class", "link");
+
+      const newNode = svg.selectAll(".node")
+        .data(nodes)
+        .enter().append("circle")
+        .attr("class", "node")
+        .attr("r", 10)
+        .call(drag(simulation));
+
+      simulation.on("tick", () => {
+        newLink
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+        newNode
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y);
+      });
+    }
+
   </script>
+
 </body>
 </html>
